@@ -715,7 +715,6 @@ function PalengkeAI({ products }) {
       const apiKey = "AQ.Ab8RN6Jwqt4O-RyGy3G4lOE6f7l7BVm3xuFSMv4Zs3IXEwOvwA"; 
       const prompt = `You are Palengke-AI, a friendly smart cooking and shopping assistant for SmartPalengke, a Filipino community wet-market marketplace app. Answer briefly and warmly, mixing Filipino/Taglish naturally. Use ONLY this live catalog information when discussing prices or items:\n${catalogSummary}\n\nUser Question: ${text}`;
 
-      // CORRECTED ENDPOINT: gemini-2.5-flash:generateContent
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -750,6 +749,855 @@ function PalengkeAI({ products }) {
       </div>
       <div className="chat-scroll" ref={scrollRef}>
         {messages.map((m, i) => (
+          <div key={i} className={"chat-bubble " + m.role + " animate-fade-up"}>
+            {m.role === "assistant" ? cleanMarkdown(m.text) : m.text}
+          </div>
+        ))}
+        {loading && (
+          <div className="chat-bubble assistant loading animate-fade-in">
+            <Loader2 size={14} className="spin" /> Nag-iisip ang Palengke-AI…
+          </div>
+        )}
+      </div>
+      {error && <p className="chat-error"><Info size={13} /> {error}</p>}
+      <div className="chat-input-row">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && send()}
+          placeholder="Magtanong hal. May ulam ba sa ₱250 na badyet?"
+        />
+        <button className="btn btn-primary chat-send" onClick={send} disabled={loading || !input.trim()}>
+          <Send size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AIAssistant({ products, onAddMany }) {
+  const [sub, setSub] = useState("recipe");
+  const subs = [
+    { id: "recipe", label: "Recipe Finder", icon: ChefHat },
+    { id: "budget", label: "Budget Planner", icon: Wallet },
+    { id: "price", label: "Price Watch", icon: TrendingUp },
+    { id: "ask", label: "Palengke-AI", icon: Sparkles },
+  ];
+  return (
+    <section className="ai-section responsive-container animate-fade-in">
+      <div className="section-heading">
+        <h2>Palengke-AI Assistant</h2>
+        <p>Matalinong modules para sa mas episyenteng pamimili.</p>
+      </div>
+      <div className="sub-tab-row">
+        {subs.map((s) => {
+          const Icon = s.icon;
+          return (
+            <button
+              key={s.id}
+              className={"sub-tab" + (sub === s.id ? " active" : "")}
+              onClick={() => setSub(s.id)}
+            >
+              <Icon size={15} /> {s.label}
+            </button>
+          );
+        })}
+      </div>
+      {sub === "recipe" && <RecipeFinder products={products} onAddMany={onAddMany} />}
+      {sub === "budget" && <BudgetPlanner products={products} onAddMany={onAddMany} />}
+      {sub === "price" && <PriceWatch products={products} />}
+      {sub === "ask" && <PalengkeAI products={products} />}
+    </section>
+  );
+}
+
+function SellTab({ products, onAddProduct, toast }) {
+  const [form, setForm] = useState({
+    name: "",
+    category: "vegetables",
+    price: "",
+    unit: "kg",
+    vendorName: "",
+    vendorType: "Vendor"
+  });
+  const [busy, setBusy] = useState(false);
+  const mine = products.filter((p) => p.vendorName === form.vendorName && form.vendorName);
+
+  function update(field, value) {
+    setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  async function submit() {
+    if (!form.name.trim() || !form.price || !form.vendorName.trim()) {
+      toast("Punan muna ang pangalan, presyo, at tindahan.");
+      return;
+    }
+    setBusy(true);
+    await onAddProduct({
+      ...form,
+      price: Number(form.price)
+    });
+    setBusy(false);
+    setForm((f) => ({ ...f, name: "", price: "" }));
+  }
+
+  return (
+    <section className="sell-section responsive-container animate-fade-in">
+      <div className="section-heading">
+        <h2>Magbenta sa Palengke</h2>
+        <p>Ilista ang iyong sariwang ani o paninda nang direkta sa mga mamimili.</p>
+      </div>
+      <div className="sell-grid">
+        <div className="sell-card card-panel animate-fade-up">
+          <h3><PackagePlus size={16} /> Magdagdag ng Bagong Produkto</h3>
+          <div className="sell-form">
+            <label>Pangalan ng Produkto
+              <input value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Hal. Kamatis SARIWA" />
+            </label>
+            <label>Kategorya
+              <select className="select-input" value={form.category} onChange={(e) => update("category", e.target.value)}>
+                {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </label>
+            <div className="sell-row-split">
+              <label>Presyo (₱)
+                <input type="number" value={form.price} onChange={(e) => update("price", e.target.value)} placeholder="45" />
+              </label>
+              <label>Yunit
+                <select className="select-input" value={form.unit} onChange={(e) => update("unit", e.target.value)}>
+                  <option value="kg">kg</option>
+                  <option value="bundle">bundle</option>
+                  <option value="tray">tray</option>
+                  <option value="pack">pack</option>
+                  <option value="can">can</option>
+                  <option value="liter">liter</option>
+                  <option value="bottle">bottle</option>
+                </select>
+              </label>
+            </div>
+            <label>Pangalan ng Tindahan / Sakahan
+              <input value={form.vendorName} onChange={(e) => update("vendorName", e.target.value)} placeholder="Hal. Aling Nena's Gulayan" />
+            </label>
+            <label>Uri ng Seller
+              <select className="select-input" value={form.vendorType} onChange={(e) => update("vendorType", e.target.value)}>
+                {VENDOR_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </label>
+          </div>
+          <button className="btn btn-primary full" onClick={submit} disabled={busy}>
+            {busy ? <Loader2 size={15} className="spin" /> : <Plus size={15} />} I-post ang Produkto
+          </button>
+        </div>
+        <div className="card-panel animate-fade-up">
+          <h3><ClipboardList size={16} /> Mga Listing Mo {form.vendorName && `(${form.vendorName})`}</h3>
+          {mine.length === 0 ? (
+            <p className="muted-note">Wala pang listing. Ilagay ang pangalan ng tindahan mo sa form para makita dito ang iyong mga produkto.</p>
+          ) : (
+            <ul className="my-listing-list">
+              {mine.map((p) => (
+                <li key={p.id} className="animate-fade-in">
+                  <span>{p.emoji} {p.name}</span>
+                  <span>{peso(p.price)}/{p.unit}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function VendorMap() {
+  const [active, setActive] = useState(VENDORS[0]);
+  return (
+    <section className="map-section responsive-container animate-fade-in">
+      <div className="section-heading">
+        <h2>Mapa ng mga Tindero</h2>
+        <p>Hanapin ang pinakamalapit na mga lokal na magsasaka at tindero sa komunidad.</p>
+      </div>
+      <div className="map-grid">
+        <div className="map-canvas animate-fade-up">
+          {VENDORS.map((v) => (
+            <button
+              key={v.name}
+              className={"map-pin" + (active.name === v.name ? " active" : "")}
+              style={{ left: v.x + "%", top: v.y + "%" }}
+              onClick={() => setActive(v)}
+              aria-label={v.name}
+            >
+              <MapPin size={24} />
+            </button>
+          ))}
+          <div className="map-legend">
+            <MapPin size={12} /> I-tap ang pin para sa detalye
+          </div>
+        </div>
+        <div className="vendor-detail-card card-panel animate-fade-up">
+          <div className="vendor-detail-top">
+            <Store size={22} />
+            <h3>{active.name}</h3>
+          </div>
+          <div className="vendor-detail-type">
+            <BadgeCheck size={14} /> {active.type}
+          </div>
+          <div className="vendor-detail-rating">
+            <Star size={14} fill="currentColor" /> {active.rating} Rating ng Mamimili
+          </div>
+          <p className="muted-note">Nagbebenta ng sariwang ani araw-araw mula 5:00 AM hanggang 6:00 PM.</p>
+          <div className="vendor-list-all">
+            <h4>Lahat ng Tindahan</h4>
+            <ul>
+              {VENDORS.map((v) => (
+                <li
+                  key={v.name}
+                  className={active.name === v.name ? "active" : ""}
+                  onClick={() => setActive(v)}
+                >
+                  <span>{v.name}</span>
+                  <span className="tiny-pill">{v.type}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CartDrawer({ open, onClose, cart, products, onQty, onRemove, onCheckout }) {
+  if (!open) return null;
+  const detailed = cart.map((i) => ({
+    ...i,
+    product: products.find((p) => p.id === i.productId)
+  })).filter((i) => i.product);
+
+  const total = detailed.reduce((s, i) => s + i.product.price * i.qty, 0);
+
+  return (
+    <>
+      <div className="drawer-backdrop animate-fade-in" onClick={onClose} />
+      <aside className="drawer-panel animate-slide-left">
+        <div className="drawer-head">
+          <h3>Basket ng Palengke</h3>
+          <button className="icon-btn" onClick={onClose} aria-label="Close cart"><X size={18} /></button>
+        </div>
+        <div className="drawer-body">
+          {detailed.length === 0 ? (
+            <div className="empty-state">
+              <ShoppingCart size={32} />
+              <p>Walang laman ang iyong basket.</p>
+            </div>
+          ) : (
+            detailed.map((i) => (
+              <div className="cart-line animate-fade-in" key={i.productId}>
+                <span className="cart-emoji">{i.product.emoji}</span>
+                <div className="cart-line-info">
+                  <div className="cart-line-name">{i.product.name}</div>
+                  <div className="cart-line-price">{peso(i.product.price)}/{i.product.unit}</div>
+                </div>
+                <div className="qty-control">
+                  <button onClick={() => onQty(i.productId, i.qty - 1)} aria-label="Decrease"><Minus size={13} /></button>
+                  <span>{i.qty}</span>
+                  <button onClick={() => onQty(i.productId, i.qty + 1)} aria-label="Increase"><Plus size={13} /></button>
+                </div>
+                <button className="remove-btn" onClick={() => onRemove(i.productId)} aria-label="Remove item">
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="drawer-foot">
+          <div className="drawer-total">
+            <span>Kabuuan</span>
+            <strong>{peso(total)}</strong>
+          </div>
+          <button className="btn btn-primary full" disabled={detailed.length === 0} onClick={() => onCheckout(total)}>
+            Mag-checkout
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function CheckoutModal({ open, onClose, total, onConfirm }) {
+  const [mode, setMode] = useState("delivery");
+  if (!open) return null;
+  return (
+    <div className="modal-overlay animate-fade-in" onClick={onClose}>
+      <div className="modal-card animate-scale" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>Kumpirmahin ang Order</h3>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><X size={18} /></button>
+        </div>
+        <div className="modal-body">
+          <div className="delivery-toggle">
+            <button className={mode === "delivery" ? "active" : ""} onClick={() => setMode("delivery")}>Delivery</button>
+            <button className={mode === "pickup" ? "active" : ""} onClick={() => setMode("pickup")}>Pickup</button>
+          </div>
+          <div className="modal-total-row">
+            <span>Babayaran</span>
+            <strong>{peso(total)}</strong>
+          </div>
+          <p className="muted-note">Cash on {mode === "delivery" ? "delivery" : "pickup"} sa napiling tindero.</p>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" onClick={onClose}>Kanselahin</button>
+          <button className="btn btn-primary" onClick={() => onConfirm(mode)}>Kumpirmahin ang Order</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileMenuModal({ open, onClose, tab, setTab }) {
+  if (!open) return null;
+  return (
+    <div className="modal-overlay animate-fade-in" onClick={onClose}>
+      <div className="modal-card mobile-menu-card animate-scale" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>Menu</h3>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><X size={18} /></button>
+        </div>
+        <div className="mobile-menu-links">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              className={"mobile-link" + (tab === t.id ? " active" : "")}
+              onClick={() => { setTab(t.id); onClose(); }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Toasts({ toasts }) {
+  return (
+    <div className="toast-container">
+      {toasts.map((t) => (
+        <div key={t.id} className="toast animate-bounce-in">
+          <CheckCircle2 size={16} /> {t.msg}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [tab, setTab] = useState("market");
+  const [products, setProducts] = useState([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
+  const [query, setQuery] = useState("");
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutTotal, setCheckoutTotal] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { toasts, push } = useToasts();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const localMock = localStorage.getItem("smart_palengke_user");
+      if (localMock) {
+        try {
+          const parsed = JSON.parse(localMock);
+          if (!cancelled) setUser(parsed);
+        } catch (e) {}
+      }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!cancelled && session?.user) {
+          setUser(session.user);
+        }
+      } catch (e) {}
+
+      const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!cancelled && session?.user) setUser(session.user);
+      });
+
+      if (!cancelled) {
+        setProducts(buildProducts());
+        setLoadingCatalog(false);
+      }
+
+      return () => {
+        authListener?.subscription?.unsubscribe();
+      };
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const addToCart = useCallback((product, qty = 1) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.productId === product.id);
+      if (existing) {
+        return prev.map((i) => i.productId === product.id ? { ...i, qty: i.qty + qty } : i);
+      }
+      return [...prev, { productId: product.id, qty }];
+    });
+    push(`${product.name} idinagdag sa basket`);
+  }, [push]);
+
+  const addManyToCart = useCallback((productsList) => {
+    if (!productsList || productsList.length === 0) return;
+    setCart((prev) => {
+      let next = [...prev];
+      productsList.forEach((product) => {
+        const existing = next.find((i) => i.productId === product.id);
+        if (existing) {
+          next = next.map((i) => i.productId === product.id ? { ...i, qty: i.qty + 1 } : i);
+        } else {
+          next.push({ productId: product.id, qty: 1 });
+        }
+      });
+      return next;
+    });
+    push(`${productsList.length} produkto idinagdag sa basket`);
+  }, [push]);
+
+  const setQty = useCallback((productId, qty) => {
+    setCart((prev) => {
+      if (qty <= 0) return prev.filter((i) => i.productId !== productId);
+      return prev.map((i) => i.productId === productId ? { ...i, qty } : i);
+    });
+  }, []);
+
+  const removeItem = useCallback((productId) => {
+    setCart((prev) => prev.filter((i) => i.productId !== productId));
+  }, []);
+
+  const addProduct = useCallback(async (form) => {
+    try {
+      const { data, error } = await supabase.from("products").insert([
+        {
+          name: form.name.trim(),
+          category: form.category,
+          unit: form.unit,
+          price: Number(form.price),
+          vendor_name: form.vendorName.trim(),
+          vendor_type: form.vendorType,
+        }
+      ]).select();
+
+      if (error) throw error;
+      if (data && data[0]) {
+        const newP = {
+          id: data[0].id,
+          name: data[0].name,
+          category: data[0].category,
+          unit: data[0].unit,
+          price: data[0].price,
+          history: genHistory(data[0].price, 0),
+          vendorName: data[0].vendor_name,
+          vendorType: data[0].vendor_type,
+          vendorX: 50,
+          vendorY: 50,
+          rating: 4.8,
+          emoji: "🛒",
+          stock: 25,
+        };
+        setProducts((prev) => [newP, ...prev]);
+        push("Matagumpay na naidagdag ang produkto sa palengke!");
+      }
+    } catch (e) {
+      const fallbackNew = {
+        id: "p" + Date.now(),
+        name: form.name.trim(),
+        category: form.category,
+        unit: form.unit,
+        price: Number(form.price),
+        history: genHistory(Number(form.price), 0),
+        vendorName: form.vendorName.trim(),
+        vendorType: form.vendorType,
+        vendorX: 50,
+        vendorY: 50,
+        rating: 4.5,
+        emoji: "🛒",
+        stock: 20,
+      };
+      setProducts((prev) => [fallbackNew, ...prev]);
+      push("Naidagdag ang produkto (lokal mode)!");
+    }
+  }, [push]);
+
+  function openCheckout(total) {
+    setCheckoutTotal(total);
+    setCartOpen(false);
+    setCheckoutOpen(true);
+  }
+
+  async function confirmOrder(mode) {
+    try {
+      await supabase.from("orders").insert([
+        { total_amount: checkoutTotal, fulfillment_mode: mode, status: "Pending" }
+      ]);
+    } catch (e) {}
+    setCart([]);
+    setCheckoutOpen(false);
+    push("Nakumpirma ang order — salamat sa pamimili!");
+  }
+
+  async function handleLogout() {
+    localStorage.removeItem("smart_palengke_user");
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
+    setUser(null);
+    push("Nakapag-sign out na.");
+  }
+
+  const cartCount = cart.reduce((s, i) => s + i.qty, 0);
+
+  if (!user) {
+    return (
+      <div className="app-root">
+        <style>{CSS}</style>
+        <AuthLandingPage onAuthSuccess={(u) => setUser(u)} toast={push} />
+        <Toasts toasts={toasts} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-root animate-fade-in">
+      <style>{CSS}</style>
+      <DashboardHeader
+        tab={tab}
+        setTab={setTab}
+        cartCount={cartCount}
+        onCartClick={() => setCartOpen(true)}
+        onMenuClick={() => setMenuOpen(true)}
+        query={query}
+        setQuery={setQuery}
+        user={user}
+        onLogout={handleLogout}
+      />
+
+      <main className="main-content">
+        {tab === "market" && (
+          <>
+            {loadingCatalog ? (
+              <div className="empty-state"><Loader2 size={32} className="spin" /><p>Ikinakarga ang palengke…</p></div>
+            ) : (
+              <Marketplace products={products} query={query} onAdd={addToCart} />
+            )}
+          </>
+        )}
+        {tab === "ai" && <AIAssistant products={products} onAddMany={addManyToCart} />}
+        {tab === "sell" && <SellTab products={products} onAddProduct={addProduct} toast={push} />}
+        {tab === "map" && <VendorMap />}
+      </main>
+
+      <CartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        cart={cart}
+        products={products}
+        onQty={setQty}
+        onRemove={removeItem}
+        onCheckout={openCheckout}
+      />
+
+      <CheckoutModal
+        open={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        total={checkoutTotal}
+        onConfirm={confirmOrder}
+      />
+
+      <MobileMenuModal
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        tab={tab}
+        setTab={setTab}
+      />
+
+      <Toasts toasts={toasts} />
+    </div>
+  );
+}
+
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-dark: #0A160F;
+  --bg-panel: #122017;
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --leaf: #3E8E41;
+  --leaf-glow: rgba(62, 142, 65, 0.25);
+  --marigold: #F59E0B;
+  --marigold-glow: rgba(245, 158, 11, 0.25);
+  --ink: #FFFFFF;
+  --ink-soft: #B5C4BB;
+  --muted: #7E9484;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg-dark); color: var(--ink); font-family: 'Inter', sans-serif; }
+.app-root { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg-dark); }
+.app-root h1, .app-root h2, .app-root h3, .app-root h4 { margin: 0; letter-spacing: -0.03em; font-weight: 700; }
+.app-root p { margin: 0; }
+.app-root button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+.app-root input, .app-root select { font-family: inherit; }
+.app-root ul { list-style: none; margin: 0; padding: 0; }
+
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes bounceIn { 0% { opacity: 0; transform: translateY(15px) scale(0.95); } 70% { transform: translateY(-3px) scale(1.02); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+
+.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-up { animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-down { animation: fadeDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-scale-in { animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-scale { transition: transform 0.2s ease; }
+.animate-scale:hover { transform: scale(1.02); }
+
+.landing-auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; position: relative; overflow: hidden; background: radial-gradient(circle at 50% 20%, #173221 0%, #0A160F 70%); }
+.orb-glow { position: absolute; border-radius: 50%; filter: blur(90px); pointer-events: none; opacity: 0.35; }
+.orb-1 { width: 450px; height: 450px; background: var(--leaf); top: -100px; left: -100px; }
+.orb-2 { width: 400px; height: 400px; background: var(--marigold); bottom: -100px; right: -100px; }
+
+.landing-auth-container { width: 100%; max-width: 980px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 40px; align-items: center; z-index: 2; }
+.landing-intro-side { display: flex; flex-direction: column; gap: 20px; }
+.landing-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(62, 142, 65, 0.15); border: 1px solid rgba(62, 142, 65, 0.3); color: #8CE056; padding: 6px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 700; width: fit-content; }
+.landing-intro-side h1 { font-size: clamp(38px, 5vw, 54px); font-weight: 800; color: #FFFFFF; line-height: 1.1; }
+.landing-highlight { color: var(--marigold); }
+.landing-intro-side p { font-size: 15.5px; line-height: 1.6; color: var(--ink-soft); }
+.landing-features-grid-mini { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+.landing-feat-card-mini { display: flex; gap: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--panel-border); padding: 14px; border-radius: 14px; }
+.feat-ico { font-size: 22px; }
+.landing-feat-card-mini h4 { font-size: 13.5px; color: #FFFFFF; font-weight: 700; }
+.landing-feat-card-mini p { font-size: 12px; color: var(--muted); }
+
+.auth-card-panel { background: rgba(18, 32, 23, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 28px; box-shadow: 0 20px 45px rgba(0,0,0,0.5); }
+.auth-card-head h3 { font-size: 22px; color: #FFFFFF; margin-bottom: 6px; }
+.auth-card-head p { font-size: 13.5px; color: var(--muted); margin-bottom: 20px; }
+
+.quick-bypass-box { margin-bottom: 16px; }
+.pulse-glow { animation: pulseGlow 2.5s infinite; }
+@keyframes pulseGlow { 0% { box-shadow: 0 0 0 0 rgba(62, 142, 65, 0.4); } 70% { box-shadow: 0 0 0 12px rgba(62, 142, 65, 0); } 100% { box-shadow: 0 0 0 0 rgba(62, 142, 65, 0); } }
+
+.auth-divider { display: flex; align-items: center; text-align: center; margin: 16px 0; color: var(--muted); font-size: 12px; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.auth-divider span { padding: 0 10px; }
+
+.social-login-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+.social-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 12px; font-size: 13.5px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #FFFFFF; transition: background 0.2s ease; }
+.social-btn:hover { background: rgba(255,255,255,0.08); }
+
+.header { position: sticky; top: 0; z-index: 100; background: rgba(10, 22, 15, 0.9); backdrop-filter: blur(16px); border-bottom: 1px solid var(--panel-border); }
+.header-inner { max-width: 1280px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 24px; }
+.brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.brand-mark { font-size: 24px; }
+.brand-text { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 800; color: #FFFFFF; }
+.brand-accent { color: var(--marigold); }
+
+.nav-tabs { display: flex; gap: 6px; flex: 1; }
+.nav-tabs-mobile { display: none; }
+.nav-tab { padding: 8px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 600; color: var(--muted); transition: all 0.2s ease; }
+.nav-tab:hover, .nav-tab.active { color: #FFFFFF; background: rgba(255, 255, 255, 0.08); }
+.nav-tab.active { background: var(--leaf); box-shadow: 0 4px 15px var(--leaf-glow); }
+
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.search-box { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); padding: 8px 14px; border-radius: 999px; width: 240px; color: var(--muted); }
+.search-box input { background: none; border: none; color: #FFFFFF; font-size: 13.5px; outline: none; width: 100%; }
+.search-box input::placeholder { color: var(--muted); }
+
+.icon-btn { position: relative; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--panel-border); color: #FFFFFF; transition: background 0.2s ease; }
+.icon-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.cart-badge { position: absolute; top: -4px; right: -4px; background: var(--marigold); color: #000000; font-size: 11px; font-weight: 800; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px var(--marigold-glow); }
+
+.auth-user-pill { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-soft); padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid var(--panel-border); }
+.auth-email-truncate { max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.main-content { flex: 1; padding: 32px 20px 60px; max-width: 1280px; width: 100%; margin: 0 auto; }
+.responsive-container { width: 100%; }
+
+.section-heading { margin-bottom: 24px; }
+.section-heading h2 { font-size: 26px; font-weight: 800; color: #FFFFFF; margin-bottom: 4px; }
+.section-heading p { font-size: 14px; color: var(--muted); }
+
+.chip-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 24px; scrollbar-width: none; }
+.chip-row::-webkit-scrollbar { display: none; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--panel-border); padding: 8px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 600; color: var(--ink-soft); white-space: nowrap; transition: all 0.2s ease; }
+.chip:hover, .chip.active { background: rgba(255, 255, 255, 0.1); color: #FFFFFF; border-color: rgba(255, 255, 255, 0.2); }
+.chip.active { background: var(--leaf); border-color: var(--leaf); box-shadow: 0 4px 15px var(--leaf-glow); }
+
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+.product-card { background: var(--bg-panel); border: 1px solid var(--panel-border); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; position: relative; transition: transform 0.25s ease, border-color 0.25s ease; }
+.product-card:hover { transform: translateY(-4px); border-color: rgba(62, 142, 65, 0.4); }
+.ai-pick-ribbon { position: absolute; top: 12px; left: 12px; background: rgba(245, 158, 11, 0.95); color: #000; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; display: flex; align-items: center; gap: 4px; z-index: 2; box-shadow: 0 4px 12px var(--marigold-glow); }
+.product-media { height: 140px; background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.2) 100%); display: flex; align-items: center; justify-content: center; }
+.product-emoji { font-size: 52px; transition: transform 0.3s ease; }
+.product-card:hover .product-emoji { transform: scale(1.1); }
+.product-body { padding: 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.product-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.product-top h3 { font-size: 15.5px; font-weight: 700; color: #FFFFFF; }
+.vendor-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #8CE056; background: rgba(62,142,65,0.15); padding: 3px 8px; border-radius: 999px; }
+.product-vendor { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--muted); }
+.product-rating { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--marigold); font-weight: 600; }
+.product-rating .dot { color: var(--muted); }
+.product-rating span:last-child { color: var(--muted); }
+
+.product-footer { margin-top: auto; padding-top: 12px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--panel-border); }
+.price-tag { display: inline-flex; align-items: baseline; gap: 1px; color: var(--marigold); font-weight: 800; font-size: 16px; }
+.price-tag-currency { font-size: 13px; }
+.price-tag-unit { font-size: 11px; color: var(--muted); font-weight: 500; }
+.price-tag-trend.down { color: #4ADE80; margin-left: 3px; }
+.price-tag-trend.up { color: #F87171; margin-left: 3px; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 700; transition: all 0.2s ease; cursor: pointer; }
+.btn-primary { background: var(--leaf); color: #FFFFFF; box-shadow: 0 4px 15px var(--leaf-glow); }
+.btn-primary:hover { background: #479F4B; transform: translateY(-1px); }
+.btn-ghost { background: rgba(255,255,255,0.06); border: 1px solid var(--panel-border); color: #FFFFFF; }
+.btn-ghost:hover { background: rgba(255,255,255,0.1); }
+.btn-add { background: rgba(62, 142, 65, 0.15); color: #8CE056; padding: 8px 12px; border-radius: 10px; font-size: 12.5px; }
+.btn-add:hover { background: var(--leaf); color: #FFFFFF; }
+.full { width: 100%; }
+
+.ai-section { display: flex; flex-direction: column; gap: 20px; }
+.sub-tab-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
+.sub-tab { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-panel); border: 1px solid var(--panel-border); padding: 9px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.sub-tab.active { background: rgba(62, 142, 65, 0.2); border-color: rgba(62, 142, 65, 0.5); color: #8CE056; }
+
+.ai-panel { background: var(--bg-panel); border: 1px solid var(--panel-border); border-radius: 24px; padding: 24px; }
+.ai-panel-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; color: var(--marigold); }
+.ai-panel-head h3 { font-size: 18px; color: #FFFFFF; margin-bottom: 2px; }
+.ai-panel-head p { font-size: 13px; color: var(--muted); }
+
+.select-input, .sell-form input { width: 100%; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--panel-border); background: rgba(255, 255, 255, 0.04); color: #FFFFFF; font-size: 13.5px; margin-bottom: 12px; outline: none; }
+.select-input option { background: var(--bg-panel); color: #FFFFFF; }
+.select-input:focus, .sell-form input:focus { border-color: var(--leaf); }
+
+.chart-wrap { background: rgba(0,0,0,0.2); border-radius: 16px; padding: 12px 6px; border: 1px solid var(--panel-border); margin-top: 12px; }
+.forecast-banner { margin-top: 16px; display: flex; align-items: center; gap: 10px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: #FCD34D; padding: 12px 16px; border-radius: 12px; font-size: 13.5px; }
+.forecast-banner.good { background: rgba(62,142,65,0.15); border-color: rgba(62,142,65,0.3); color: #8CE056; }
+
+.recipe-chip-row { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 14px; }
+.recipe-meta { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+.ingredient-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.ingredient-list li { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 10px; font-size: 13.5px; border: 1px solid var(--panel-border); }
+.ing-price { font-weight: 700; color: var(--marigold); }
+.ing-missing { font-size: 12px; color: #F87171; }
+.recipe-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--panel-border); padding-top: 16px; font-size: 14px; }
+
+.budget-slider-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.budget-slider { flex: 1; accent-color: var(--leaf); }
+.budget-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 800; color: var(--marigold); }
+.basket-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.basket-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--panel-border); padding: 10px; border-radius: 12px; }
+.basket-emoji-sm { font-size: 24px; }
+.basket-name { font-size: 13px; font-weight: 600; color: #FFFFFF; }
+.basket-price { font-size: 11.5px; color: var(--marigold); }
+
+.ai-chat-panel { display: flex; flex-direction: column; height: 500px; }
+.chat-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+.chat-bubble { max-width: 80%; padding: 12px 16px; border-radius: 16px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; }
+.chat-bubble.user { align-self: flex-end; background: var(--leaf); color: #FFFFFF; border-bottom-right-radius: 4px; }
+.chat-bubble.assistant { align-self: flex-start; background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); color: #FFFFFF; border-bottom-left-radius: 4px; }
+.chat-bubble.loading { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.chat-error { color: #F87171; font-size: 12.5px; margin-top: 8px; }
+.chat-input-row { display: flex; gap: 10px; margin-top: 14px; }
+.chat-input-row input { flex: 1; margin: 0; border-radius: 999px; padding: 12px 18px; }
+
+.sell-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.sell-row-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.my-listing-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; max-height: 280px; overflow-y: auto; }
+.my-listing-list li { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 10px 14px; border-radius: 10px; font-size: 13px; border: 1px solid var(--panel-border); }
+
+.map-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; }
+.map-canvas { height: 420px; background: rgba(0,0,0,0.3); border: 1px solid var(--panel-border); border-radius: 20px; position: relative; overflow: hidden; }
+.map-pin { position: absolute; transform: translate(-50%, -50%); background: var(--bg-dark); color: var(--muted); border: 2px solid var(--panel-border); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease, color 0.2s ease, border-color 0.2s ease; }
+.map-pin:hover, .map-pin.active { background: var(--leaf); color: #FFFFFF; border-color: #FFFFFF; transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 15px var(--leaf-glow); }
+.map-legend { position: absolute; bottom: 16px; left: 16px; display: flex; align-items: center; gap: 6px; background: rgba(10,22,15,0.85); backdrop-filter: blur(8px); padding: 6px 12px; border-radius: 999px; font-size: 11.5px; border: 1px solid var(--panel-border); color: var(--muted); }
+.vendor-detail-top { display: flex; align-items: center; gap: 10px; color: var(--marigold); margin-bottom: 8px; }
+.vendor-detail-top h3 { font-size: 18px; color: #FFFFFF; }
+.vendor-detail-type { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #8CE056; font-weight: 700; margin-bottom: 6px; }
+.vendor-detail-rating { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--marigold); font-weight: 600; margin-bottom: 14px; }
+.vendor-list-all { margin-top: 18px; border-top: 1px solid var(--panel-border); padding-top: 14px; }
+.vendor-list-all h4 { font-size: 13.5px; margin-bottom: 8px; color: var(--muted); }
+.vendor-list-all ul { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.vendor-list-all li { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 8px; font-size: 12.5px; cursor: pointer; background: rgba(255,255,255,0.02); }
+.vendor-list-all li:hover, .vendor-list-all li.active { background: rgba(62,142,65,0.15); color: #8CE056; }
+.tiny-pill { font-size: 10px; padding: 2px 6px; border-radius: 999px; background: rgba(255,255,255,0.06); color: var(--muted); }
+
+.drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; }
+.drawer-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 380px; background: var(--bg-panel); border-left: 1px solid var(--panel-border); z-index: 201; display: flex; flex-direction: column; animation: slideLeft 0.3s cubic-bezier(0.16,1,0.3,1) forwards; }
+@keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
+.drawer-head { padding: 20px; border-bottom: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center; }
+.drawer-head h3 { font-size: 18px; color: #FFFFFF; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.cart-line { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--panel-border); padding: 12px; border-radius: 14px; }
+.cart-emoji { font-size: 28px; }
+.cart-line-info { flex: 1; }
+.cart-line-name { font-size: 13.5px; font-weight: 700; color: #FFFFFF; }
+.cart-line-price { font-size: 12px; color: var(--marigold); }
+.qty-control { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); padding: 4px 10px; border-radius: 999px; }
+.qty-control button { display: flex; color: #FFFFFF; }
+.qty-control span { font-size: 13px; font-weight: 700; color: #FFFFFF; min-width: 14px; text-align: center; }
+.remove-btn { color: #F87171; opacity: 0.8; transition: opacity 0.2s ease; }
+.remove-btn:hover { opacity: 1; }
+.drawer-foot { padding: 20px; border-top: 1px solid var(--panel-border); background: rgba(0,0,0,0.2); }
+.drawer-total { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 14px; color: var(--muted); }
+.drawer-total strong { font-size: 22px; color: var(--marigold); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-card { width: 100%; max-width: 400px; background: var(--bg-panel); border: 1px solid var(--panel-border); border-radius: 20px; padding: 24px; box-shadow: 0 25px 50px rgba(0,0,0,0.6); }
+.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-head h3 { font-size: 18px; color: #FFFFFF; }
+.modal-body { display: flex; flex-direction: column; gap: 14px; }
+.delivery-toggle { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 12px; border: 1px solid var(--panel-border); }
+.delivery-toggle button { padding: 10px; border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--muted); transition: all 0.2s ease; }
+.delivery-toggle button.active { background: var(--leaf); color: #FFFFFF; box-shadow: 0 4px 12px var(--leaf-glow); }
+.modal-total-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid var(--panel-border); padding: 14px; border-radius: 12px; font-size: 14px; }
+.modal-total-row strong { font-size: 18px; color: var(--marigold); }
+.modal-foot { display: flex; gap: 10px; margin-top: 20px; }
+.modal-foot .btn { flex: 1; }
+
+.mobile-menu-card { max-width: 320px; }
+.mobile-menu-links { display: flex; flex-direction: column; gap: 8px; }
+.mobile-link { text-align: left; padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--muted); background: rgba(255,255,255,0.03); border: 1px solid var(--panel-border); transition: all 0.2s ease; }
+.mobile-link.active, .mobile-link:hover { background: var(--leaf); color: #FFFFFF; border-color: var(--leaf); }
+
+.toast-container { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 400; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; width: 90%; max-width: 400px; }
+.toast { background: rgba(18, 32, 23, 0.95); backdrop-filter: blur(12px); color: #FFFFFF; border: 1px solid rgba(62, 142, 65, 0.4); padding: 12px 20px; border-radius: 999px; font-size: 13.5px; font-weight: 600; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 8px; }
+.toast svg { color: #8CE056; flex-shrink: 0; }
+
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 20px; text-align: center; color: var(--muted); gap: 12px; }
+.muted-note { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+
+@media (max-width: 900px) {
+  .landing-auth-container { grid-template-columns: 1fr; gap: 24px; }
+  .sell-grid { grid-template-columns: 1fr; }
+  .map-grid { grid-template-columns: 1fr; }
+  .map-canvas { height: 320px; }
+}
+
+@media (max-width: 768px) {
+  .nav-tabs { display: none; }
+  .nav-tabs-mobile { display: flex; gap: 6px; padding: 8px 20px 12px; overflow-x: auto; background: rgba(10,22,15,0.95); border-bottom: 1px solid var(--panel-border); }
+  .nav-tabs-mobile .nav-tab { font-size: 12px; padding: 6px 12px; }
+  .header-inner { padding: 12px 16px; }
+  .search-box { width: 160px; }
+}
+`;((m, i) => (
           <div key={i} className={"chat-bubble " + m.role + " animate-fade-up"}>
             {m.role === "assistant" ? cleanMarkdown(m.text) : m.text}
           </div>
