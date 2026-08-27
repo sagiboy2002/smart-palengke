@@ -159,7 +159,7 @@ function useToasts() {
   return { toasts, push };
 }
 
-function PriceTag({ price, unit, tilt = -2, trend }) {
+function PriceTag({ price, unit, trend }) {
   return (
     <div className="price-tag">
       <span className="price-tag-currency">₱</span>
@@ -714,7 +714,7 @@ function PalengkeAI({ products }) {
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
       if (!apiKey) {
-        throw5Error("Missing Gemini API Key in environment variables.");
+        throw new Error("Missing Gemini API Key in environment variables.");
       }
       
       const prompt = `You are Palengke-AI, a friendly smart cooking and shopping assistant for SmartPalengke, a Filipino community wet-market marketplace app. Answer briefly and warmly, mixing Filipino/Taglish naturally. Use ONLY this live catalog information when discussing prices or items:\n${catalogSummary}\n\nUser Question: ${text}`;
@@ -746,10 +746,6 @@ function PalengkeAI({ products }) {
     } finally {
       setLoading(false);
     }
-  }
-
-  function throw5Error(msg) {
-    throw new Error(msg);
   }
 
   return (
