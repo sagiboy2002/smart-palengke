@@ -11,7 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 
 // Initialize Supabase Client with your provided credentials
 const SUPABASE_URL = "https://tujqgnpbougzwopbdzgf.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1anFnbnBib3VnendvcGJkemdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NTc2OTEsImV4cCI6MjEwMTAzMzY5MX0.cJGSHL0MJINGtrricEMnin08vQZi4RxeidZgl5haZdc";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1anFgnpbougzwopbdzgfIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NTc2OTEsImV4cCI6MjEwMTAzMzY5MX0.cJGSHL0MJINGtrricEMnin08vQZi4RxeidZgl5haZdc";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const CATEGORIES = [
@@ -271,38 +271,13 @@ function AuthLandingPage({ onAuthSuccess, toast }) {
     <div className="landing-auth-screen">
       <div className="orb-glow orb-1" />
       <div className="orb-glow orb-2" />
-      <div className="landing-auth-container">
-        <div className="landing-intro-side animate-fade-up">
-          <div className="landing-badge">
-            <Leaf size={14} /> Next-Gen Wet-Market Platform
-          </div>
-          <h1>
-            Smart<span className="landing-highlight">Palengke</span>
-          </h1>
-          <p>
-            Ang pinakapremirong plataporma para sa sariwang ani mula sa mga lokal na magsasaka
-            at tindero. May AI-powered price forecasting, recipe assistant, at digital marketplace.
-          </p>
-          <div className="landing-features-grid-mini">
-            <div className="landing-feat-card-mini">
-              <span className="feat-ico">🌾</span>
-              <div>
-                <h4>Direkta sa Ani</h4>
-                <p>Walang patong ng middleman</p>
-              </div>
-            </div>
-            <div className="landing-feat-card-mini">
-              <span className="feat-ico">📊</span>
-              <div>
-                <h4>AI Price Watch</h4>
-                <p>Predictive market trends</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
+      <div className="landing-auth-container centered-auth-layout">
         <div className="auth-card-panel animate-scale-in">
-          <div className="auth-card-head">
+          <div className="auth-card-head text-center">
+            <div className="brand-auth-header">
+              <span className="brand-mark">🧺</span>
+              <h2>Smart<span className="landing-highlight">Palengke</span></h2>
+            </div>
             <h3>{isSignup ? "Lumikha ng Account" : "Mag-login sa Dashboard"}</h3>
             <p>{isSignup ? "Magrehistro nang mabilis para ma-access ang buong sistema" : "Ipasok ang iyong detalye o mag-login agad gamit ang isang pindot"}</p>
           </div>
@@ -1387,21 +1362,14 @@ body { margin: 0; background: var(--bg-dark); color: var(--ink); font-family: 'I
 .orb-1 { width: 450px; height: 450px; background: var(--leaf); top: -100px; left: -100px; }
 .orb-2 { width: 400px; height: 400px; background: var(--marigold); bottom: -100px; right: -100px; }
 
-.landing-auth-container { width: 100%; max-width: 980px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 40px; align-items: center; z-index: 2; }
-.landing-intro-side { display: flex; flex-direction: column; gap: 20px; }
-.landing-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(62, 142, 65, 0.15); border: 1px solid rgba(62, 142, 65, 0.3); color: #8CE056; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; width: fit-content; }
-.landing-intro-side h1 { font-size: clamp(36px, 5vw, 52px); font-weight: 800; color: #FFFFFF; line-height: 1.1; }
-.landing-highlight { color: var(--marigold); }
-.landing-intro-side p { font-size: 15px; line-height: 1.6; color: var(--ink-soft); }
-.landing-features-grid-mini { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
-.landing-feat-card-mini { display: flex; gap: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--panel-border); padding: 14px; border-radius: 16px; }
-.feat-ico { font-size: 22px; }
-.landing-feat-card-mini h4 { font-size: 13.5px; color: #FFFFFF; font-weight: 700; margin-bottom: 2px; }
-.landing-feat-card-mini p { font-size: 12px; color: var(--muted); }
+.landing-auth-container { width: 100%; max-width: 520px; display: flex; justify-content: center; z-index: 2; }
+.centered-auth-layout { width: 100%; max-width: 480px; margin: 0 auto; }
 
-.auth-card-panel { background: rgba(14, 26, 18, 0.85); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 32px; box-shadow: 0 24px 48px rgba(0,0,0,0.5); }
-.auth-card-head h3 { font-size: 22px; color: #FFFFFF; margin-bottom: 6px; }
-.auth-card-head p { font-size: 13.5px; color: var(--muted); margin-bottom: 20px; }
+.auth-card-panel { width: 100%; background: rgba(14, 26, 18, 0.88); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 36px; box-shadow: 0 24px 48px rgba(0,0,0,0.5); }
+.brand-auth-header { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
+.brand-auth-header h2 { font-size: 26px; font-weight: 800; color: #FFFFFF; }
+.auth-card-head h3 { font-size: 20px; color: #FFFFFF; margin-bottom: 4px; }
+.auth-card-head p { font-size: 13.5px; color: var(--muted); margin-bottom: 24px; }
 
 .quick-bypass-box { margin-bottom: 16px; }
 .pulse-glow { animation: pulseGlow 2.5s infinite; }
@@ -1598,7 +1566,6 @@ body { margin: 0; background: var(--bg-dark); color: var(--ink); font-family: 'I
 .muted-note { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
 
 @media (max-width: 900px) {
-  .landing-auth-container { grid-template-columns: 1fr; gap: 24px; }
   .sell-grid { grid-template-columns: 1fr; }
   .map-grid { grid-template-columns: 1fr; }
   .map-canvas { height: 320px; }
