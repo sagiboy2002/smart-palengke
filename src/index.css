@@ -55,11 +55,11 @@ body {
 }
 
 #root {
-  width: 1126px;
+  width: 100%;       /* Changed from 1126px to fill the screen */
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
+  border-inline: none; /* Removed side borders */
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -108,4 +108,22 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+.auth-card-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+
+.landing-auth-container {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Splits your screen evenly across wide viewports */
+  gap: 4rem;
+  align-items: center;
 }
