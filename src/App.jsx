@@ -712,14 +712,24 @@ function PalengkeAI({ products }) {
     setError("");
 
     try {
-      const apiKey = "AQ.Ab8RN6Jwqt4O-RyGy3G4lOE6f7l7BVm3xuFSMv4Zs3IXEwOvwA"; 
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
+      if (!apiKey) {
+        throw5Error("Missing Gemini API Key in environment variables.");
+      }
+      
       const prompt = `You are Palengke-AI, a friendly smart cooking and shopping assistant for SmartPalengke, a Filipino community wet-market marketplace app. Answer briefly and warmly, mixing Filipino/Taglish naturally. Use ONLY this live catalog information when discussing prices or items:\n${catalogSummary}\n\nUser Question: ${text}`;
 
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+          contents: [{ parts: [{ text: prompt }] }],
+          safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+          ]
         })
       });
 
@@ -736,6 +746,10 @@ function PalengkeAI({ products }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function throw5Error(msg) {
+    throw new Error(msg);
   }
 
   return (
